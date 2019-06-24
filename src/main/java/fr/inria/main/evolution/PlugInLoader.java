@@ -48,6 +48,7 @@ public class PlugInLoader {
 			log.error("Loading " + className + " --" + e);
 			throw new Exception("Error Loading Engine: " + e);
 		}
+		log.debug("HERE "+className+" \n");
 		if (type.isInstance(object))
 			return (AstorExtensionPoint) object;
 		else

@@ -1,14 +1,5 @@
 package fr.inria.astor.approaches.extensions.processbasedsorted;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import fr.inria.astor.core.entities.ProgramVariant;
 import fr.inria.astor.core.entities.TestCaseVariantValidationResult;
 import fr.inria.astor.core.manipulation.MutationSupporter;
@@ -18,9 +9,15 @@ import fr.inria.astor.core.stats.Stats.GeneralStatEnum;
 import fr.inria.astor.core.validation.ProgramVariantValidator;
 import fr.inria.astor.core.validation.results.TestCasesProgramValidationResult;
 import fr.inria.astor.core.validation.results.TestResult;
-import fr.inria.astor.core.validation.processbased.LaucherJUnitProcess;
 import fr.inria.astor.util.Converters;
+import org.apache.log4j.Logger;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 /**
  * 
  * @author Matias Martinez
@@ -61,7 +58,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		try {
 			URL[] bc = createClassPath(mutatedVariant, projectFacade);
 
-			LaucherJUnitProcess testProcessRunner = new LaucherJUnitProcess();
+			LauncherJUnitProcess testProcessRunner = new LauncherJUnitProcess();
 
 			log.debug("-Running first validation");
 
@@ -99,7 +96,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		try {
 			URL[] bc = createClassPath(mutatedVariant, projectFacade);
 
-			LaucherJUnitProcess testProcessRunner = new LaucherJUnitProcess();
+			LauncherJUnitProcess testProcessRunner = new LauncherJUnitProcess();
 			String jvmPath = ConfigurationProperties.getProperty("jvm4testexecution");
 
 			TestResult trfailing = testProcessRunner.execute(jvmPath, bc,
@@ -134,7 +131,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 	protected TestCaseVariantValidationResult runRegression(ProgramVariant mutatedVariant,
 			ProjectRepairFacade projectFacade, URL[] bc) {
 
-		LaucherJUnitProcess testProcessRunner = new LaucherJUnitProcess();
+		LauncherJUnitProcess testProcessRunner = new LauncherJUnitProcess();
 
 		if (ConfigurationProperties.getPropertyBool("testbystep"))
 			return executeRegressionTestingOneByOne(mutatedVariant, bc, testProcessRunner, projectFacade);
@@ -180,7 +177,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 	}
 
 	protected TestCaseVariantValidationResult executeRegressionTesting(ProgramVariant mutatedVariant, URL[] bc,
-			LaucherJUnitProcess p, ProjectRepairFacade projectFacade) {
+			LauncherJUnitProcess p, ProjectRepairFacade projectFacade) {
 		log.debug("-Test Failing is passing, Executing regression");
 
 		List<String> testCasesRegression = projectFacade.getProperties().getRegressionTestCases();
@@ -206,7 +203,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 	}
 
 	protected TestCaseVariantValidationResult executeRegressionTestingOneByOne(ProgramVariant mutatedVariant, URL[] bc,
-			LaucherJUnitProcess p, ProjectRepairFacade projectFacade) {
+			LauncherJUnitProcess p, ProjectRepairFacade projectFacade) {
 
 		log.debug("-Test Failing is passing, Executing regression, One by one");
 		TestResult trregressionall = new TestResult();
@@ -230,7 +227,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 				trregressionall.getSuccessTest().addAll(singleTestResult.getSuccessTest());
 				trregressionall.failures += singleTestResult.failures;
 				trregressionall.casesExecuted += singleTestResult.getCasesExecuted();
-
+				
 			}
 		}
 		long t2 = System.currentTimeMillis();
@@ -243,6 +240,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		log.info("HEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHERE");
 		return cases;
 		
-		
+	
 	}
+	
 }

@@ -127,11 +127,6 @@
 			<snapshots />
 		</repository>
 
-		<repository>
-			<id>EvoSuite</id>
-			<name>EvoSuite Repository</name>
-			<url>http://www.evosuite.org/m2</url>
-		</repository>
 
 		<repository>
 			<id>sachaproject.gforge.inria.fr-release</id>

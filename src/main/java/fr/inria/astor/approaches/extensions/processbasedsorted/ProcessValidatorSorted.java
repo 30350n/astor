@@ -11,6 +11,10 @@ import fr.inria.astor.core.validation.results.TestCasesProgramValidationResult;
 import fr.inria.astor.core.validation.results.TestResult;
 import fr.inria.astor.util.Converters;
 import org.apache.log4j.Logger;
+import org.w3c.dom.*;
+import javax.xml.parsers.*;
+import java.io.*;
+import org.xml.sax.*;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -27,6 +31,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 	protected Logger log = Logger.getLogger(Thread.currentThread().getName());
 	static boolean firstrun;
+	static List<String> coverageResult; //TODO klasse für eintrge
 	/**
 	 * Process-based validation Advantage: stability, memory consumption, CG
 	 * activity Disadvantage: time.
@@ -59,11 +64,59 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			URL[] bc = createClassPath(mutatedVariant, projectFacade);
 
 			LauncherJUnitProcess testProcessRunner = new LauncherJUnitProcess();
+			String jvmPath = ConfigurationProperties.getProperty("jvm4testexecution");
+			log.info("-Running first validation");
 
-			log.debug("-Running first validation");
+			if ( coverageResult == null)
+			{
+				try {
+				for (String testCase : projectFacade.getProperties().getRegressionTestCases()) {
+					List <String> testcaseList = new ArrayList<String>();
+					testcaseList.add(testCase);
+					TestResult allTestsResults = testProcessRunner.execute(jvmPath, bc, testcaseList, // TODO anstatt bc original classpath
+							ConfigurationProperties.getPropertyInt("tmax1"), true);
+					log.info(ConfigurationProperties.getProperty("location") + "/here.xml");
+					File file = new File(ConfigurationProperties.getProperty("location") + "/here.xml"); //TODO echter Name
+					DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+					DocumentBuilder db = dbf.newDocumentBuilder();
+					db.setEntityResolver(new EntityResolver() {
+						@Override
+						public InputSource resolveEntity(String publicId, String systemId)
+								throws SAXException, IOException {
+							if (systemId.contains("report.dtd")) {
+								return new InputSource(new StringReader(""));
+							} else {
+								return null;
+							}
+						}
+					});
+					Document document = db.parse(file);
+					NodeList counters = document.getDocumentElement().getElementsByTagName("counter");
+					for (int temp = 0; temp < counters.getLength(); temp++) {
+						Node nNode = counters.item(temp);
+						//System.out.println("\nCurrent Element :" + nNode.getNodeName());
+						if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+							Element eElement = (Element) nNode;
+							//log.info(eElement.getAttribute("type"));
+							if (eElement.getAttribute("type").equals("INSTRUCTION")){
+								int covered = Integer.parseInt(eElement.getAttribute("covered"));
+								int missed = Integer.parseInt(eElement.getAttribute("missed"));
+								int sum = covered + missed;
+								double coverage = covered/sum;
+								//log.info(coverage);
+							}
+						}
+					}
+				}
+			}catch (Exception e){
+				e.printStackTrace();
+				return null;
+			}
+				
+			}
 
 			long t1 = System.currentTimeMillis();
-			String jvmPath = ConfigurationProperties.getProperty("jvm4testexecution");
+
 
 			TestResult trfailing = testProcessRunner.execute(jvmPath, bc,
 					projectFacade.getProperties().getFailingTestCases(),
@@ -75,6 +128,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 				return null;
 			}
 
+			
 			log.debug(trfailing);
 			if (trfailing.wasSuccessful() || forceExecuteRegression) {
 				return runRegression(mutatedVariant, projectFacade, bc);

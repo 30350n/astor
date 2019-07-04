@@ -25,7 +25,6 @@ public class LauncherJUnitProcess {
 
 	private boolean avoidInterruption;
 	protected Logger log = Logger.getLogger(Thread.currentThread().getName());
-	static HashSet<String> excludes = new HashSet<>();
 
 	public LauncherJUnitProcess(boolean avoidInterruption) {
 		super();
@@ -37,18 +36,21 @@ public class LauncherJUnitProcess {
 	}
 
 	public TestResult execute(String jvmPath, URL[] classpath, List<String> classesToExecute, int waitTime) {
-		return execute(jvmPath, urlArrayToString(classpath), classesToExecute, waitTime);
+		return execute(jvmPath, urlArrayToString(classpath), classesToExecute, waitTime,false);
+	}
+	public TestResult execute(String jvmPath, URL[] classpath, List<String> classesToExecute, int waitTime,Boolean recordCoverage) {
+		return execute(jvmPath, urlArrayToString(classpath), classesToExecute, waitTime,recordCoverage);
 	}
 
 
 	boolean outputInFile = ConfigurationProperties.getPropertyBool("processoutputinfile");
 
 
-	public TestResult execute(String jvmPath, String classpath, List<String> classesToExecute, int waitTime) {
+	public TestResult execute(String jvmPath, String classpath, List<String> classesToExecute, int waitTime,Boolean recordCoverage) {
 		Process p = null;
 		jvmPath += File.separator + "java";
 
-		List<String> cls = new ArrayList<>(classesToExecute); //TODO LIST -> string da wir immer nur eine klasse aufrufen
+		List<String> cls = new ArrayList<>(classesToExecute); 
 
 		String newClasspath = classpath;
 		if (ConfigurationProperties.getPropertyBool("runjava7code") || ProjectConfiguration.isJDKLowerThan8()) {
@@ -65,7 +67,9 @@ public class LauncherJUnitProcess {
 
 			command.add(jvmPath);
 			command.add("-Xmx2048m");
-			command.add("-javaagent:" + System.getProperty("user.dir") + "/lib/jacocoagent.jar=excludes="+String.join(":",excludes));
+			if (recordCoverage) {
+				command.add("-javaagent:" + System.getProperty("user.dir") + "/lib/jacocoagent.jar=append=false");
+			}
 			command.add("-Dmutnumber=" + ConfigurationProperties.getProperty("metid"));
 			command.add("-cp");
 			command.add(newClasspath);
@@ -115,8 +119,8 @@ public class LauncherJUnitProcess {
 			}
 
 			//update excludes after run //TODO not exclude after timeout?
-			excludes.add(cls.get(0));
-			this.getCoverageResults(jvmPath,waitTime);
+			if (recordCoverage) {
+			this.getCoverageResults(jvmPath,waitTime);}
 			//log.info("triggered coverage");
 			//
 			if (!p.waitFor(waitTime, TimeUnit.MILLISECONDS)) {
@@ -299,7 +303,7 @@ public class LauncherJUnitProcess {
 			List<String> command = new ArrayList<String>();
 
 			command.add(jvmPath);
-			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report --classfiles target/classes --csv here.csv");
+			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report --classfiles target/classes --csv here.csv --xml here.xml");
 			//log.info(command);
 			printCommandToExecute(command);
 

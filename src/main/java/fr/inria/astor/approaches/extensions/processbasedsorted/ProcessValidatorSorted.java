@@ -26,7 +26,7 @@ import java.util.List;
 public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 	protected Logger log = Logger.getLogger(Thread.currentThread().getName());
-
+	static boolean firstrun;
 	/**
 	 * Process-based validation Advantage: stability, memory consumption, CG
 	 * activity Disadvantage: time.

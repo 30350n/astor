@@ -11,6 +11,7 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -22,8 +23,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class LauncherJUnitProcess {
 
+	private boolean avoidInterruption;
 	protected Logger log = Logger.getLogger(Thread.currentThread().getName());
-	boolean avoidInterruption = false;
+	static HashSet<String> excludes = new HashSet<>();
 
 	public LauncherJUnitProcess(boolean avoidInterruption) {
 		super();
@@ -38,13 +40,15 @@ public class LauncherJUnitProcess {
 		return execute(jvmPath, urlArrayToString(classpath), classesToExecute, waitTime);
 	}
 
+
 	boolean outputInFile = ConfigurationProperties.getPropertyBool("processoutputinfile");
+
 
 	public TestResult execute(String jvmPath, String classpath, List<String> classesToExecute, int waitTime) {
 		Process p = null;
 		jvmPath += File.separator + "java";
 
-		List<String> cls = new ArrayList<>(classesToExecute);
+		List<String> cls = new ArrayList<>(classesToExecute); //TODO LIST -> string da wir immer nur eine klasse aufrufen
 
 		String newClasspath = classpath;
 		if (ConfigurationProperties.getPropertyBool("runjava7code") || ProjectConfiguration.isJDKLowerThan8()) {
@@ -61,7 +65,7 @@ public class LauncherJUnitProcess {
 
 			command.add(jvmPath);
 			command.add("-Xmx2048m");
-			command.add("-javaagent:" + System.getProperty("user.dir") + "/lib/jacocoagent.jar=append=false");
+			command.add("-javaagent:" + System.getProperty("user.dir") + "/lib/jacocoagent.jar=excludes="+String.join(":",excludes));
 			command.add("-Dmutnumber=" + ConfigurationProperties.getProperty("metid"));
 			command.add("-cp");
 			command.add(newClasspath);
@@ -110,6 +114,10 @@ public class LauncherJUnitProcess {
 				log.error(e);
 			}
 
+			//update excludes after run //TODO not exclude after timeout?
+			excludes.add(cls.get(0));
+			this.getCoverageResults(jvmPath,waitTime);
+			//log.info("triggered coverage");
 			//
 			if (!p.waitFor(waitTime, TimeUnit.MILLISECONDS)) {
 				killProcess(p, waitTime);
@@ -282,26 +290,17 @@ public class LauncherJUnitProcess {
 		}
 	}
 	
-	protected void getCoverageResults(String jvmPath, String classpath, List<String> classesToExecute, int waitTime){
+	protected void getCoverageResults(String jvmPath, int waitTime){
 		Process p = null;
-		jvmPath += File.separator + "java";
-
-		List<String> cls = new ArrayList<>(classesToExecute);
-
-		String newClasspath = classpath;
-		if (ConfigurationProperties.getPropertyBool("runjava7code") || ProjectConfiguration.isJDKLowerThan8()) {
-			newClasspath = (new File(ConfigurationProperties.getProperty("executorjar")).getAbsolutePath())
-					+ File.pathSeparator + classpath;
-		}
+		//jvmPath += File.separator + "java"; //zurzeit doppelt
 
 		try {
 
 			List<String> command = new ArrayList<String>();
 
 			command.add(jvmPath);
-			command.add("-Xmx2048m");
-			
-
+			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report --classfiles target/classes --csv here.csv");
+			//log.info(command);
 			printCommandToExecute(command);
 
 			ProcessBuilder pb = new ProcessBuilder("/bin/bash");

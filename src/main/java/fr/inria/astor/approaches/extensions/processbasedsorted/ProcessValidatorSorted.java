@@ -61,7 +61,16 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			boolean forceExecuteRegression) {
 
 		try {
+			//URL[] bc1 = projectFacade.getClassPathURLforProgramVariant(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
+			
 			URL[] bc = createClassPath(mutatedVariant, projectFacade);
+			ProgramVariant origin = mutatedVariant;
+			while (origin.getParent() != null){
+				origin = origin.getParent();
+				log.info("going up one level");
+			}
+
+			URL[] originclasspath = createClassPath(origin, projectFacade);
 
 			LauncherJUnitProcess testProcessRunner = new LauncherJUnitProcess();
 			String jvmPath = ConfigurationProperties.getProperty("jvm4testexecution");
@@ -73,9 +82,9 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 				for (String testCase : projectFacade.getProperties().getRegressionTestCases()) {
 					List <String> testcaseList = new ArrayList<String>();
 					testcaseList.add(testCase);
-					TestResult allTestsResults = testProcessRunner.execute(jvmPath, bc, testcaseList, // TODO anstatt bc original classpath
+					TestResult allTestsResults = testProcessRunner.execute(jvmPath, originclasspath, testcaseList,
 							ConfigurationProperties.getPropertyInt("tmax1"), true);
-					log.info(ConfigurationProperties.getProperty("location") + "/here.xml");
+					//log.info(ConfigurationProperties.getProperty("location") + "/here.xml");
 					File file = new File(ConfigurationProperties.getProperty("location") + "/here.xml"); //TODO echter Name
 					DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 					DocumentBuilder db = dbf.newDocumentBuilder();
@@ -103,7 +112,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 								int missed = Integer.parseInt(eElement.getAttribute("missed"));
 								int sum = covered + missed;
 								double coverage = covered/sum;
-								//log.info(coverage);
+								log.info(coverage);
 							}
 						}
 					}

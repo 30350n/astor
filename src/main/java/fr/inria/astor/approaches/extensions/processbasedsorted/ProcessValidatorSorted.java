@@ -61,7 +61,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			boolean forceExecuteRegression) {
 
 		try {
-			//URL[] bc1 = projectFacade.getClassPathURLforProgramVariant(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
+			
 			
 			URL[] bc = createClassPath(mutatedVariant, projectFacade);
 			ProgramVariant origin = mutatedVariant;
@@ -84,6 +84,8 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 					testcaseList.add(testCase);
 					TestResult allTestsResults = testProcessRunner.execute(jvmPath, originclasspath, testcaseList,
 							ConfigurationProperties.getPropertyInt("tmax1"), true);
+					URL[] classpath = projectFacade.getClassPathURLforProgramVariant(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
+					testProcessRunner.getCoverageResults(jvmPath, ConfigurationProperties.getPropertyInt("tmax1"), classpath);
 					//log.info(ConfigurationProperties.getProperty("location") + "/here.xml");
 					File file = new File(ConfigurationProperties.getProperty("location") + "/here.xml"); //TODO echter Name
 					DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -100,8 +102,9 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 						}
 					});
 					Document document = db.parse(file);
-					NodeList counters = document.getDocumentElement().getElementsByTagName("counter");
+					NodeList counters = document.getDocumentElement().getElementsByTagName("counter"); //TODO only find the needed one not all in submodules
 					for (int temp = 0; temp < counters.getLength(); temp++) {
+						//log.info("Counters found:" + counters.getLength());
 						Node nNode = counters.item(temp);
 						//System.out.println("\nCurrent Element :" + nNode.getNodeName());
 						if (nNode.getNodeType() == Node.ELEMENT_NODE) {
@@ -112,7 +115,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 								int missed = Integer.parseInt(eElement.getAttribute("missed"));
 								int sum = covered + missed;
 								double coverage = covered/sum;
-								log.info(coverage);
+								//log.info(coverage);
 							}
 						}
 					}

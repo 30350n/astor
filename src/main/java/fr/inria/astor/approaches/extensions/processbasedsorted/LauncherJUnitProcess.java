@@ -118,10 +118,6 @@ public class LauncherJUnitProcess {
 				log.error(e);
 			}
 
-			//update excludes after run //TODO not exclude after timeout?
-			if (recordCoverage) {
-			this.getCoverageResults(jvmPath,waitTime);}
-			//log.info("triggered coverage");
 			//
 			if (!p.waitFor(waitTime, TimeUnit.MILLISECONDS)) {
 				killProcess(p, waitTime);
@@ -231,7 +227,7 @@ public class LauncherJUnitProcess {
 		String commandToPrint = (trunk != 0 && commandString.length() > trunk)
 				? (commandString.substring(0, trunk) + "..AND " + (commandString.length() - trunk) + " CHARS MORE...")
 				: commandString;
-		log.debug("Executing process: \n" + commandToPrint);
+		log.info("Executing process: \n" + commandToPrint);
 	}
 
 	private String toString(List<String> command) {
@@ -294,24 +290,26 @@ public class LauncherJUnitProcess {
 		}
 	}
 	
-	protected void getCoverageResults(String jvmPath, int waitTime){
+	public void getCoverageResults(String jvmPath, int waitTime,URL[] classpath){
+		String classpathString = urlArrayToString(classpath);
+		classpathString =  classpathString.substring(0, classpathString.length() - 1); //useless ':' for some reason
 		Process p = null;
-		//jvmPath += File.separator + "java"; //zurzeit doppelt
+		jvmPath += File.separator + "java"; 
 
 		try {
 
 			List<String> command = new ArrayList<String>();
 
 			command.add(jvmPath);
-			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report --classfiles target/classes --csv here.csv --xml here.xml");
+			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report  jacoco.exec --classfiles " + classpathString +  " --sourcefiles src" + " --csv here.csv --xml here.xml");
 			//log.info(command);
 			printCommandToExecute(command);
 
 			ProcessBuilder pb = new ProcessBuilder("/bin/bash");
 
 
-			pb.redirectOutput();
-			pb.redirectErrorStream(true);
+			//pb.redirectOutput();
+			//pb.redirectErrorStream(true);
 			pb.directory(new File((ConfigurationProperties.getProperty("location"))));
 			long t_start = System.currentTimeMillis();
 			p = pb.start();
@@ -347,6 +345,7 @@ public class LauncherJUnitProcess {
 
 			//
 			if (!p.waitFor(waitTime, TimeUnit.MILLISECONDS)) {
+				log.info("Jacococli timed out?!");
 				killProcess(p, waitTime);
 
 			}

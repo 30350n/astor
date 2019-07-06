@@ -290,9 +290,9 @@ public class LauncherJUnitProcess {
 		}
 	}
 	
-	public void getCoverageResults(String jvmPath, int waitTime,URL[] classpath){
-		String classpathString = urlArrayToString(classpath);
-		classpathString =  classpathString.substring(0, classpathString.length() - 1); //useless ':' for some reason
+	public void getCoverageResults(String jvmPath, int waitTime,String classpath){
+		//String classpathString = urlArrayToString(classpath);
+		//classpathString =  classpathString.substring(0, classpathString.length() - 1); //useless ':' for some reason
 		Process p = null;
 		jvmPath += File.separator + "java"; 
 
@@ -301,7 +301,7 @@ public class LauncherJUnitProcess {
 			List<String> command = new ArrayList<String>();
 
 			command.add(jvmPath);
-			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report  jacoco.exec --classfiles " + classpathString +  " --sourcefiles src" + " --xml here.xml");
+			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report  jacoco.exec --classfiles " + classpath +  " --sourcefiles src" + " --xml here.xml");
 			//log.info(command);
 			printCommandToExecute(command);
 

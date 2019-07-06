@@ -91,9 +91,10 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 						testcaseList.add(testCase);
 						TestResult allTestsResults = testProcessRunner.execute(jvmPath, originclasspath, testcaseList,
 								ConfigurationProperties.getPropertyInt("tmax1"), true);
-						URL[] classpath = projectFacade
-								.getClassPathURLforProgramVariant(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
-						testProcessRunner.getCoverageResults(jvmPath, ConfigurationProperties.getPropertyInt("tmax1"),
+						//URL[] classpath = projectFacade
+						//		.getClassPathURLforProgramVariant(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
+						String classpath = projectFacade.getOutDirWithPrefix(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
+						testProcessRunner.getCoverageResults(jvmPath, ConfigurationProperties.getPropertyInt("tmax1")*2,
 								classpath);
 						// log.info(ConfigurationProperties.getProperty("location") + "/here.xml");
 						File file = new File(ConfigurationProperties.getProperty("location") + "/here.xml"); // TODO
@@ -312,7 +313,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		}
 		long t2 = System.currentTimeMillis();
 		log.debug(trregressionall);
-		return new TestCasesProgramValidationResult(trregressionall, true, trregressionall.wasSuccessful());
+		return new TestCasesProgramValidationResult(trregressionall, trregressionall.wasSuccessful(),true);
 
 	}
 

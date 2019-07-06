@@ -227,7 +227,7 @@ public class LauncherJUnitProcess {
 		String commandToPrint = (trunk != 0 && commandString.length() > trunk)
 				? (commandString.substring(0, trunk) + "..AND " + (commandString.length() - trunk) + " CHARS MORE...")
 				: commandString;
-		log.info("Executing process: \n" + commandToPrint);
+		log.debug("Executing process: \n" + commandToPrint);
 	}
 
 	private String toString(List<String> command) {
@@ -301,7 +301,7 @@ public class LauncherJUnitProcess {
 			List<String> command = new ArrayList<String>();
 
 			command.add(jvmPath);
-			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report  jacoco.exec --classfiles " + classpathString +  " --sourcefiles src" + " --csv here.csv --xml here.xml");
+			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report  jacoco.exec --classfiles " + classpathString +  " --sourcefiles src" + " --xml here.xml");
 			//log.info(command);
 			printCommandToExecute(command);
 

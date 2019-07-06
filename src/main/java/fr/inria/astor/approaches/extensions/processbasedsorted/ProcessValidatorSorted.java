@@ -21,7 +21,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.*;
+
 /**
  * 
  * @author Matias Martinez
@@ -31,7 +36,10 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 	protected Logger log = Logger.getLogger(Thread.currentThread().getName());
 	static boolean firstrun;
-	static List<String> coverageResult; //TODO klasse für eintrge
+	static List<coverageResult> coverageResults;
+	static boolean coverageSorted = false;
+	static List<String> sortedTestCases;
+
 	/**
 	 * Process-based validation Advantage: stability, memory consumption, CG
 	 * activity Disadvantage: time.
@@ -49,8 +57,8 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 	/**
 	 * Run the validation of the program variant in two steps: one the original
-	 * failing test, the second the complete test suite (only in case the
-	 * failing now passes)ProgramVariantValidator
+	 * failing test, the second the complete test suite (only in case the failing
+	 * now passes)ProgramVariantValidator
 	 * 
 	 * @param mutatedVariant
 	 * @param projectFacade
@@ -61,74 +69,77 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			boolean forceExecuteRegression) {
 
 		try {
-			
-			
-			URL[] bc = createClassPath(mutatedVariant, projectFacade);
-			ProgramVariant origin = mutatedVariant;
-			while (origin.getParent() != null){
-				origin = origin.getParent();
-				log.info("going up one level");
-			}
 
-			URL[] originclasspath = createClassPath(origin, projectFacade);
+			URL[] bc = createClassPath(mutatedVariant, projectFacade);
 
 			LauncherJUnitProcess testProcessRunner = new LauncherJUnitProcess();
 			String jvmPath = ConfigurationProperties.getProperty("jvm4testexecution");
 			log.info("-Running first validation");
 
-			if ( coverageResult == null)
-			{
+			if (coverageResults == null) {
 				try {
-				for (String testCase : projectFacade.getProperties().getRegressionTestCases()) {
-					List <String> testcaseList = new ArrayList<String>();
-					testcaseList.add(testCase);
-					TestResult allTestsResults = testProcessRunner.execute(jvmPath, originclasspath, testcaseList,
-							ConfigurationProperties.getPropertyInt("tmax1"), true);
-					URL[] classpath = projectFacade.getClassPathURLforProgramVariant(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
-					testProcessRunner.getCoverageResults(jvmPath, ConfigurationProperties.getPropertyInt("tmax1"), classpath);
-					//log.info(ConfigurationProperties.getProperty("location") + "/here.xml");
-					File file = new File(ConfigurationProperties.getProperty("location") + "/here.xml"); //TODO echter Name
-					DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-					DocumentBuilder db = dbf.newDocumentBuilder();
-					db.setEntityResolver(new EntityResolver() {
-						@Override
-						public InputSource resolveEntity(String publicId, String systemId)
-								throws SAXException, IOException {
-							if (systemId.contains("report.dtd")) {
-								return new InputSource(new StringReader(""));
-							} else {
-								return null;
+					coverageResults = new ArrayList<coverageResult>();
+					ProgramVariant origin = mutatedVariant;
+					while (origin.getParent() != null) {
+						origin = origin.getParent();
+						log.info("going up one level");
+					}
+
+					URL[] originclasspath = createClassPath(origin, projectFacade);
+					for (String testCase : projectFacade.getProperties().getRegressionTestCases()) {
+						List<String> testcaseList = new ArrayList<String>();
+						testcaseList.add(testCase);
+						TestResult allTestsResults = testProcessRunner.execute(jvmPath, originclasspath, testcaseList,
+								ConfigurationProperties.getPropertyInt("tmax1"), true);
+						URL[] classpath = projectFacade
+								.getClassPathURLforProgramVariant(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
+						testProcessRunner.getCoverageResults(jvmPath, ConfigurationProperties.getPropertyInt("tmax1"),
+								classpath);
+						// log.info(ConfigurationProperties.getProperty("location") + "/here.xml");
+						File file = new File(ConfigurationProperties.getProperty("location") + "/here.xml"); // TODO
+																												// echter
+																												// Name
+						DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+						DocumentBuilder db = dbf.newDocumentBuilder();
+						db.setEntityResolver(new EntityResolver() {
+							@Override
+							public InputSource resolveEntity(String publicId, String systemId)
+									throws SAXException, IOException {
+								if (systemId.contains("report.dtd")) {
+									return new InputSource(new StringReader(""));
+								} else {
+									return null;
+								}
 							}
-						}
-					});
-					Document document = db.parse(file);
-					NodeList counters = document.getDocumentElement().getElementsByTagName("counter"); //TODO only find the needed one not all in submodules
-					for (int temp = 0; temp < counters.getLength(); temp++) {
-						//log.info("Counters found:" + counters.getLength());
-						Node nNode = counters.item(temp);
-						//System.out.println("\nCurrent Element :" + nNode.getNodeName());
-						if (nNode.getNodeType() == Node.ELEMENT_NODE) {
-							Element eElement = (Element) nNode;
-							//log.info(eElement.getAttribute("type"));
-							if (eElement.getAttribute("type").equals("INSTRUCTION")){
-								int covered = Integer.parseInt(eElement.getAttribute("covered"));
-								int missed = Integer.parseInt(eElement.getAttribute("missed"));
-								int sum = covered + missed;
-								double coverage = covered/sum;
-								//log.info(coverage);
+						});
+						Document document = db.parse(file);
+						NodeList counters = document.getDocumentElement().getElementsByTagName("counter");
+						for (int temp = counters.getLength() - 7; temp < counters.getLength(); temp++) {
+							// log.info("Counters found:" + counters.getLength());
+							Node nNode = counters.item(temp);
+							// System.out.println("\nCurrent Element :" + nNode.getNodeName());
+							if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+								Element eElement = (Element) nNode;
+								// log.info(eElement.getAttribute("type"));
+								if (eElement.getAttribute("type").equals("INSTRUCTION")) {
+									int covered = Integer.parseInt(eElement.getAttribute("covered"));
+									int missed = Integer.parseInt(eElement.getAttribute("missed"));
+									int sum = covered + missed;
+									double coverage = (double) covered / sum;
+									log.info(String.valueOf(coverage));
+									coverageResults.add(new coverageResult(testCase, coverage));
+								}
 							}
 						}
 					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					return null;
 				}
-			}catch (Exception e){
-				e.printStackTrace();
-				return null;
-			}
-				
+				sortedTestCases = this.getsortedTestCases();
 			}
 
 			long t1 = System.currentTimeMillis();
-
 
 			TestResult trfailing = testProcessRunner.execute(jvmPath, bc,
 					projectFacade.getProperties().getFailingTestCases(),
@@ -140,7 +151,6 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 				return null;
 			}
 
-			
 			log.debug(trfailing);
 			if (trfailing.wasSuccessful() || forceExecuteRegression) {
 				return runRegression(mutatedVariant, projectFacade, bc);
@@ -274,10 +284,10 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		log.debug("-Test Failing is passing, Executing regression, One by one");
 		TestResult trregressionall = new TestResult();
 		long t1 = System.currentTimeMillis();
-		List<String> testCasesRegression = projectFacade.getProperties().getRegressionTestCases();
-		testCasesRegression = this.sortTestCases(testCasesRegression);
-		
-		for (String tc : testCasesRegression) {
+		// List<String> testCasesRegression =
+		// projectFacade.getProperties().getRegressionTestCases();
+
+		for (String tc : sortedTestCases) {
 
 			List<String> parcial = new ArrayList<String>();
 			parcial.add(tc);
@@ -293,7 +303,11 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 				trregressionall.getSuccessTest().addAll(singleTestResult.getSuccessTest());
 				trregressionall.failures += singleTestResult.failures;
 				trregressionall.casesExecuted += singleTestResult.getCasesExecuted();
-				
+
+			}
+			if (trregressionall.failures > 0) {
+				log.info("Testcase Failed, aborting this variant");
+				break;
 			}
 		}
 		long t2 = System.currentTimeMillis();
@@ -301,12 +315,37 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		return new TestCasesProgramValidationResult(trregressionall, true, trregressionall.wasSuccessful());
 
 	}
-	
-	protected List<String> sortTestCases(List<String> cases){
-		log.info("HEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHEREHERE");
+
+	protected List<String> getsortedTestCases() {
+
+		if (!coverageSorted) {
+			Collections.sort(coverageResults, new SortCoverage());
+			coverageSorted = true;
+		}
+
+		List<String> cases = new ArrayList<>();
+		for (coverageResult cr : coverageResults) {
+			cases.add(cr.name);
+		}
+
 		return cases;
-		
-	
+
 	}
-	
+
+}
+
+class coverageResult {
+	String name;
+	Double coverage;
+
+	public coverageResult(String name, double coverage) {
+		this.coverage = coverage;
+		this.name = name;
+	}
+}
+
+class SortCoverage implements Comparator<coverageResult> {
+	public int compare(coverageResult a, coverageResult b) {
+		return Double.compare(a.coverage, b.coverage);
+	}
 }

@@ -1,6 +1,7 @@
 package fr.inria.astor.core.validation.processbased;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -58,6 +59,7 @@ public class ProcessValidator extends ProgramVariantValidator {
 			boolean forceExecuteRegression) {
 
 		try {
+			recordTimeStamp("validateStart");
 			URL[] bc = createClassPath(mutatedVariant, projectFacade);
 
 			LaucherJUnitProcess testProcessRunner = new LaucherJUnitProcess();
@@ -78,13 +80,16 @@ public class ProcessValidator extends ProgramVariantValidator {
 			}
 
 			log.debug(trfailing);
+			
+			TestCaseVariantValidationResult r;
 			if (trfailing.wasSuccessful() || forceExecuteRegression) {
-				return runRegression(mutatedVariant, projectFacade, bc);
+				r = runRegression(mutatedVariant, projectFacade, bc);
 			} else {
-				TestCaseVariantValidationResult r = new TestCasesProgramValidationResult(trfailing,
+				r = new TestCasesProgramValidationResult(trfailing,
 						trfailing.wasSuccessful(), false);
-				return r;
 			}
+			recordTimeStamp("validateEnd");
+			return r;
 
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -209,6 +214,8 @@ public class ProcessValidator extends ProgramVariantValidator {
 
 		log.debug("-Test Failing is passing, Executing regression, One by one");
 		TestResult trregressionall = new TestResult();
+		
+		recordTimeStamp("regressionTestStart");
 		long t1 = System.currentTimeMillis();
 
 		for (String tc : projectFacade.getProperties().getRegressionTestCases()) {
@@ -231,9 +238,28 @@ public class ProcessValidator extends ProgramVariantValidator {
 			}
 		}
 		long t2 = System.currentTimeMillis();
+		recordTimeStamp("regressionTestEnd");
 		log.debug(trregressionall);
 		return new TestCasesProgramValidationResult(trregressionall, true, trregressionall.wasSuccessful());
 
+	}
+
+        protected void recordTimeStamp(String comment) {
+		try {
+			File file = new File("./recording.txt");
+			if (file.exists()) {                                 
+				FileOutputStream output = new FileOutputStream(file, true);
+				String message = Long.toString(System.currentTimeMillis()) + " " + comment + "\n";                                 
+				output.write(message.getBytes());
+				output.flush();
+				output.close();
+			}
+			else {                                 
+				log.info("recording.txt does not exist");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 }

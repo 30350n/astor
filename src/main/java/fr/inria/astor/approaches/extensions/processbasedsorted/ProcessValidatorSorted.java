@@ -17,6 +17,7 @@ import java.io.*;
 import org.xml.sax.*;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -69,6 +70,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			boolean forceExecuteRegression) {
 
 		try {
+			recordTimeStamp("validateStart");
 
 			URL[] bc = createClassPath(mutatedVariant, projectFacade);
 
@@ -77,6 +79,9 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			log.info("-Running first validation");
 
 			if (coverageResults == null) {
+				recordTimeStamp("cachingStart");
+				log.info("Caching coverage...");
+				long coverageCacheStart = System.currentTimeMillis();
 				try {
 					coverageResults = new ArrayList<coverageResult>();
 					ProgramVariant origin = mutatedVariant;
@@ -87,10 +92,13 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 					URL[] originclasspath = createClassPath(origin, projectFacade);
 					for (String testCase : projectFacade.getProperties().getRegressionTestCases()) {
+						long loopStart = System.currentTimeMillis();
 						List<String> testcaseList = new ArrayList<String>();
 						testcaseList.add(testCase);
+						long testStart = System.currentTimeMillis();
 						TestResult allTestsResults = testProcessRunner.execute(jvmPath, originclasspath, testcaseList,
 								ConfigurationProperties.getPropertyInt("tmax1"), true);
+						long testEnd = System.currentTimeMillis();
 						//URL[] classpath = projectFacade
 						//		.getClassPathURLforProgramVariant(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
 						String classpath = projectFacade.getOutDirWithPrefix(ProgramVariant.DEFAULT_ORIGINAL_VARIANT);
@@ -127,24 +135,34 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 									int missed = Integer.parseInt(eElement.getAttribute("missed"));
 									int sum = covered + missed;
 									double coverage = (double) covered / sum;
-									log.info(String.valueOf(coverage));
-									coverageResults.add(new coverageResult(testCase, coverage));
+									log.info("Coverage: " + String.valueOf(coverage) + " Time: " + Double.toString((testEnd - testStart) / 1000.0) + "s");
+									coverageResults.add(new coverageResult(testCase, coverage, testEnd - testStart));
 								}
 							}
 						}
+						long loopEnd = System.currentTimeMillis();
+						double loopTime = (loopEnd - loopStart) / 1000.0;
+						double testTime = (testEnd - testStart) / 1000.0;
+						log.info("Overhead: " + Double.toString(loopTime - testTime) + "s (loop: " + Double.toString(loopTime) + "s test: " + Double.toString(testTime) + "s)");
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
 					return null;
 				}
+				long coverageCacheEnd = System.currentTimeMillis();
+				log.info("Finished generating cache in " + Long.toString(coverageCacheEnd - coverageCacheStart) + " seconds!");
+				recordTimeStamp("sortingStart");
 				sortedTestCases = this.getsortedTestCases();
+				recordTimeStamp("sortingEnd");
+				recordTimeStamp("cachingEnd");
 			}
 
 			long t1 = System.currentTimeMillis();
-
+			recordTimeStamp("failingTestCaseStart");
 			TestResult trfailing = testProcessRunner.execute(jvmPath, bc,
 					projectFacade.getProperties().getFailingTestCases(),
 					ConfigurationProperties.getPropertyInt("tmax1"));
+			recordTimeStamp("failingTestCaseEnd");
 			long t2 = System.currentTimeMillis();
 
 			if (trfailing == null) {
@@ -153,13 +171,17 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			}
 
 			log.debug(trfailing);
+			TestCaseVariantValidationResult r;
 			if (trfailing.wasSuccessful() || forceExecuteRegression) {
-				return runRegression(mutatedVariant, projectFacade, bc);
+				r = runRegression(mutatedVariant, projectFacade, bc);
 			} else {
-				TestCaseVariantValidationResult r = new TestCasesProgramValidationResult(trfailing,
+				 r = new TestCasesProgramValidationResult(trfailing,
 						trfailing.wasSuccessful(), false);
-				return r;
 			}
+
+			recordTimeStamp("validateEnd");
+
+			return r;
 
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -209,11 +231,11 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			ProjectRepairFacade projectFacade, URL[] bc) {
 
 		LauncherJUnitProcess testProcessRunner = new LauncherJUnitProcess();
-
-		if (ConfigurationProperties.getPropertyBool("testbystep"))
-			return executeRegressionTestingOneByOne(mutatedVariant, bc, testProcessRunner, projectFacade);
-		else
-			return executeRegressionTesting(mutatedVariant, bc, testProcessRunner, projectFacade);
+		
+		//if (ConfigurationProperties.getPropertyBool("testbystep"))
+		return executeRegressionTestingOneByOne(mutatedVariant, bc, testProcessRunner, projectFacade);
+		//else
+		//	return executeRegressionTesting(mutatedVariant, bc, testProcessRunner, projectFacade);
 
 	}
 
@@ -287,6 +309,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		long t1 = System.currentTimeMillis();
 		// List<String> testCasesRegression =
 		// projectFacade.getProperties().getRegressionTestCases();
+		recordTimeStamp("regressionTestStart");
 
 		for (String tc : sortedTestCases) {
 
@@ -312,6 +335,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			}
 		}
 		long t2 = System.currentTimeMillis();
+		recordTimeStamp("regressionTestEnd");
 		log.debug(trregressionall);
 		return new TestCasesProgramValidationResult(trregressionall, trregressionall.wasSuccessful(),true);
 
@@ -333,15 +357,35 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 	}
 
+	protected void recordTimeStamp(String comment) {
+		try {
+			File file = new File("./recording.txt");
+
+			if (file.exists()) {
+				FileOutputStream output = new FileOutputStream(file, true);
+				String message = Long.toString(System.currentTimeMillis()) + " " + comment + "\n";
+				output.write(message.getBytes());
+				output.flush();
+				output.close();
+			}
+			else {
+				log.info("recording.txt does not exist");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
 
 class coverageResult {
 	String name;
 	Double coverage;
+	Double time;
 
-	public coverageResult(String name, double coverage) {
+	public coverageResult(String name, double coverage, long time) {
 		this.coverage = coverage;
 		this.name = name;
+		this.time = time / 1000.0;
 	}
 }
 

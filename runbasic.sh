@@ -1,0 +1,2 @@
+. /vol/tmp/Astor/_create_env.sh
+java  -cp /vol/fob-vol4/mi17/milewskr/astor/target/astor-0.0.2-SNAPSHOT-jar-with-dependencies.jar fr.inria.main.evolution.AstorMain  -mode jgenprog -maxgen 1000 -autocompile false -testbystep true -location examples/chart_1 -srcjavafolder source -srctestfolder tests -binjavafolder build -bintestfolder build-tests -dependencies /vol/fob-vol4/mi17/milewskr/astor/examples/libs/lang_common_lib:/vol/fob-vol4/mi17/milewskr/astor/examples/libs:/vol/fob-vol4/mi17/milewskr/astor/examples/chart_1/lib

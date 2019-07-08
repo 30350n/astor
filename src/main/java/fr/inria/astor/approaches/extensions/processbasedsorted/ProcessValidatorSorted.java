@@ -92,6 +92,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 					URL[] originclasspath = createClassPath(origin, projectFacade);
 					for (String testCase : projectFacade.getProperties().getRegressionTestCases()) {
+						log.info(testCase);
 						long loopStart = System.currentTimeMillis();
 						List<String> testcaseList = new ArrayList<String>();
 						testcaseList.add(testCase);
@@ -137,6 +138,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 									double coverage = (double) covered / sum;
 									log.info("Coverage: " + String.valueOf(coverage) + " Time: " + Double.toString((testEnd - testStart) / 1000.0) + "s");
 									coverageResults.add(new coverageResult(testCase, coverage, testEnd - testStart));
+									break;
 								}
 							}
 						}
@@ -312,7 +314,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		recordTimeStamp("regressionTestStart");
 
 		for (String tc : sortedTestCases) {
-
+			log.info("Running test: " + tc);
 			List<String> parcial = new ArrayList<String>();
 			parcial.add(tc);
 			String jvmPath = ConfigurationProperties.getProperty("jvm4testexecution");
@@ -391,6 +393,6 @@ class coverageResult {
 
 class SortCoverage implements Comparator<coverageResult> {
 	public int compare(coverageResult a, coverageResult b) {
-		return Double.compare(a.coverage, b.coverage);
+		return Double.compare(b.coverage, a.coverage);
 	}
 }

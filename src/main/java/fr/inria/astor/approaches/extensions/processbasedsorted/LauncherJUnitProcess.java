@@ -38,7 +38,7 @@ public class LauncherJUnitProcess {
 	public TestResult execute(String jvmPath, URL[] classpath, List<String> classesToExecute, int waitTime) {
 		return execute(jvmPath, urlArrayToString(classpath), classesToExecute, waitTime,false);
 	}
-	public TestResult execute(String jvmPath, URL[] classpath, List<String> classesToExecute, int waitTime,Boolean recordCoverage) {
+	public TestResult execute(String jvmPath, URL[] classpath, List<String> classesToExecute, int waitTime, Boolean recordCoverage) {
 		return execute(jvmPath, urlArrayToString(classpath), classesToExecute, waitTime,recordCoverage);
 	}
 
@@ -46,7 +46,7 @@ public class LauncherJUnitProcess {
 	boolean outputInFile = ConfigurationProperties.getPropertyBool("processoutputinfile");
 
 
-	public TestResult execute(String jvmPath, String classpath, List<String> classesToExecute, int waitTime,Boolean recordCoverage) {
+	public TestResult execute(String jvmPath, String classpath, List<String> classesToExecute, int waitTime, Boolean recordCoverage) {
 		Process p = null;
 		jvmPath += File.separator + "java";
 
@@ -68,6 +68,7 @@ public class LauncherJUnitProcess {
 			command.add(jvmPath);
 			command.add("-Xmx2048m");
 			if (recordCoverage) {
+				// attach the jacoco client
 				command.add("-javaagent:" + System.getProperty("user.dir") + "/lib/jacocoagent.jar=append=false");
 			}
 			command.add("-Dmutnumber=" + ConfigurationProperties.getProperty("metid"));
@@ -291,25 +292,18 @@ public class LauncherJUnitProcess {
 	}
 	
 	public void getCoverageResults(String jvmPath, int waitTime,String classpath){
-		//String classpathString = urlArrayToString(classpath);
-		//classpathString =  classpathString.substring(0, classpathString.length() - 1); //useless ':' for some reason
 		Process p = null;
 		jvmPath += File.separator + "java"; 
 
 		try {
-
 			List<String> command = new ArrayList<String>();
 
 			command.add(jvmPath);
-			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report  jacoco.exec --classfiles " + classpath +  " --sourcefiles src" + " --xml here.xml");
-			//log.info(command);
+			command.add("-jar "+ System.getProperty("user.dir") + "/lib/jacococli.jar report  jacoco.exec --classfiles " + classpath +  " --sourcefiles src" + " --xml coverageResults.xml");
 			printCommandToExecute(command);
 
 			ProcessBuilder pb = new ProcessBuilder("/bin/bash");
 
-
-			//pb.redirectOutput();
-			//pb.redirectErrorStream(true);
 			pb.directory(new File((ConfigurationProperties.getProperty("location"))));
 			long t_start = System.currentTimeMillis();
 			p = pb.start();
@@ -343,15 +337,11 @@ public class LauncherJUnitProcess {
 				log.error(e);
 			}
 
-			//
 			if (!p.waitFor(waitTime, TimeUnit.MILLISECONDS)) {
 				log.info("Jacococli timed out?!");
 				killProcess(p, waitTime);
-
 			}
 			long t_end = System.currentTimeMillis();
-			// log.debug("Execution time " + ((t_end - t_start) / 1000) + "
-			// seconds");
 
 			if (!avoidInterruption) {
 				// We force obtaining the exit value.
@@ -364,5 +354,4 @@ public class LauncherJUnitProcess {
 			killProcess(p, waitTime);
 		}
 	}
-
 }

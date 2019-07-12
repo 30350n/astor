@@ -1,8 +1,9 @@
 package fr.inria.main.evolution;
 
+import org.apache.log4j.Logger;
+
 import fr.inria.astor.core.setup.ConfigurationProperties;
 import fr.inria.astor.core.solutionsearch.extension.AstorExtensionPoint;
-import org.apache.log4j.Logger;
 
 /**
  * 
@@ -47,7 +48,6 @@ public class PlugInLoader {
 			log.error("Loading " + className + " --" + e);
 			throw new Exception("Error Loading Engine: " + e);
 		}
-		log.debug("HERE "+className+" \n");
 		if (type.isInstance(object))
 			return (AstorExtensionPoint) object;
 		else

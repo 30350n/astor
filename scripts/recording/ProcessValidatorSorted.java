@@ -167,7 +167,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 				long coverageCacheEnd = System.currentTimeMillis();
 
-				log.info("Finished generating cache in " + Long.toString(coverageCacheEnd - coverageCacheStart) + " seconds!");
+				log.info("Finished generating cache in " + Double.toString((coverageCacheEnd - coverageCacheStart) / 1000.0) + " seconds!");
 				
 				// sort test cases
 				sortedTestCases = this.getsortedTestCases();

@@ -69,9 +69,11 @@ public class ProcessValidator extends ProgramVariantValidator {
 			long t1 = System.currentTimeMillis();
 			String jvmPath = ConfigurationProperties.getProperty("jvm4testexecution");
 
+			recordTimeStamp("failingTestCaseStart");
 			TestResult trfailing = testProcessRunner.execute(jvmPath, bc,
 					projectFacade.getProperties().getFailingTestCases(),
 					ConfigurationProperties.getPropertyInt("tmax1"));
+			recordTimeStamp("failingTestCaseEnd");
 			long t2 = System.currentTimeMillis();
 
 			if (trfailing == null) {

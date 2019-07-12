@@ -6,7 +6,7 @@ class sleep {
     public static int main(int i,boolean b) {
         if (b) {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(5000);
                 return 0;
             } catch (Exception e) {
                 //TODO: handle exception

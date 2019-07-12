@@ -255,9 +255,8 @@
                 <include>**/*TestPermutations.java</include>
               </includes>
               <excludes>
-                <exclude>**/*AbstractTest.java</exclude>	
+                <exclude>**/*AbstractTest.java</exclude>
               </excludes>
-              <argLine>${argLine}</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -281,28 +280,6 @@
             </execution>
           </executions>
         </plugin>
-		<plugin>
-      <groupId>org.jacoco</groupId>
-      <artifactId>jacoco-maven-plugin</artifactId>
-      <version>0.8.4</version>
-		  <configuration>
-		<append>true</append>
-	</configuration>
-      <executions>
-		<execution>
-			<goals>
-				<goal>prepare-agent</goal>
-			</goals>
-		</execution>
-		<execution>
-			<id>report</id>
-			<phase>test</phase>
-			<goals>
-				<goal>report</goal>
-			</goals>
-		</execution>
-	</executions>
-    </plugin>
       </plugins>
   </build>
   <reporting>
@@ -355,21 +332,6 @@
           <minSeverity>info</minSeverity>
          </configuration>
       </plugin>
-      		<plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <configuration>
-                    <append>true</append>
-                </configuration>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <!-- select non-aggregate reports -->
-                            <report>report</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-</plugin>
     </plugins>
   </reporting>
 </project>

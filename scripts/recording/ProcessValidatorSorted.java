@@ -69,6 +69,8 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			boolean forceExecuteRegression) {
 
 		try {
+			recordTimeStamp("validateStart");
+
 			URL[] bc = createClassPath(mutatedVariant, projectFacade);
 
 			LauncherJUnitProcess testProcessRunner = new LauncherJUnitProcess();
@@ -78,6 +80,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			if (coverageResults == null) {
 				// generate coverage cache
 
+				recordTimeStamp("cachingStart");
 				log.info("Caching coverage...");
 				long coverageCacheStart = System.currentTimeMillis();
 
@@ -168,12 +171,16 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 				
 				// sort test cases
 				sortedTestCases = this.getsortedTestCases();
+
+				recordTimeStamp("cachingEnd");
 			}
 
 			long t1 = System.currentTimeMillis();
+			recordTimeStamp("failingTestCaseStart");
 			TestResult trfailing = testProcessRunner.execute(jvmPath, bc,
 					projectFacade.getProperties().getFailingTestCases(),
 					ConfigurationProperties.getPropertyInt("tmax1"));
+			recordTimeStamp("failingTestCaseEnd");
 			long t2 = System.currentTimeMillis();
 
 			if (trfailing == null) {
@@ -189,6 +196,8 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 				 r = new TestCasesProgramValidationResult(trfailing,
 						trfailing.wasSuccessful(), false);
 			}
+
+			recordTimeStamp("validateEnd");
 
 			return r;
 
@@ -285,6 +294,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 		log.debug("-Test Failing is passing, Executing regression, One by one");
 		TestResult trregressionall = new TestResult();
 		long t1 = System.currentTimeMillis();
+		recordTimeStamp("regressionTestStart");
 
 		for (String tc : sortedTestCases) {
 			log.info("Running test: " + tc);
@@ -310,6 +320,7 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 			}
 		}
 		long t2 = System.currentTimeMillis();
+		recordTimeStamp("regressionTestEnd");
 		log.debug(trregressionall);
 		return new TestCasesProgramValidationResult(trregressionall, trregressionall.wasSuccessful(),true);
 
@@ -329,6 +340,25 @@ public class ProcessValidatorSorted extends ProgramVariantValidator {
 
 		return cases;
 
+	}
+
+	protected void recordTimeStamp(String comment) {
+		try {
+			File file = new File("./recording.txt");
+
+			if (file.exists()) {
+				FileOutputStream output = new FileOutputStream(file, true);
+				String message = Long.toString(System.currentTimeMillis()) + " " + comment + "\n";
+				output.write(message.getBytes());
+				output.flush();
+				output.close();
+			}
+			else {
+				log.info("recording.txt does not exist");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
 
